@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { MetricCard } from '../components/MetricCard';
 import { CitaCard } from '../components/CitaCard';
+import { CitaForm } from '../components/CitaForm';
+import { Modal } from '../components/Modal';
 import { api } from '../api/client';
 import { useToast } from '../components/Toast';
 
@@ -9,6 +11,8 @@ export const Dashboard = () => {
   const [citasHoy, setCitasHoy] = useState([]);
   const [leadsRecientes, setLeadsRecientes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCita, setSelectedCita] = useState(null);
   const { addToast } = useToast();
 
   const loadData = async () => {
@@ -43,6 +47,33 @@ export const Dashboard = () => {
     } catch (error) {
       addToast(error.message, 'error');
     }
+  };
+
+  const handleSaveCita = async (data) => {
+    try {
+      await api.updateCita(selectedCita.id, data);
+      addToast('Cita actualizada correctamente', 'success');
+      setIsModalOpen(false);
+      loadData();
+    } catch (error) {
+      addToast(error.message, 'error');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('¿Está seguro de eliminar esta cita?')) return;
+    try {
+      await api.deleteCita(id);
+      addToast('Cita eliminada', 'success');
+      loadData();
+    } catch (error) {
+      addToast(error.message, 'error');
+    }
+  };
+
+  const openEdit = (cita) => {
+    setSelectedCita(cita);
+    setIsModalOpen(true);
   };
 
   if (loading) {
@@ -87,8 +118,8 @@ export const Dashboard = () => {
                   key={cita.id} 
                   cita={cita} 
                   onChangeEstado={handleChangeEstado}
-                  onEdit={() => {}} // Placeholder for edit
-                  onDelete={() => {}} // Placeholder for delete
+                  onEdit={openEdit}
+                  onDelete={handleDelete}
                 />
               ))
             )}
@@ -122,6 +153,18 @@ export const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Editar Cita"
+      >
+        <CitaForm
+          cita={selectedCita}
+          onSubmit={handleSaveCita}
+          onCancel={() => setIsModalOpen(false)}
+        />
+      </Modal>
     </div>
   );
 };
