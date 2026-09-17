@@ -32,7 +32,7 @@ export const CitaCard = ({ cita, onChangeEstado, onEdit, onDelete }) => {
           <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span>🕒 {cita.hora_inicio?.substring(0,5)} - {cita.hora_fin?.substring(0,5)}</span>
             <span>•</span>
-            <span>📅 {new Date(cita.fecha).toLocaleDateString()}</span>
+            <span>📅 {new Date(`${cita.fecha}T00:00:00`).toLocaleDateString()}</span>
           </div>
         </div>
         <StatusBadge estado={cita.estado || 'Pendiente'} />

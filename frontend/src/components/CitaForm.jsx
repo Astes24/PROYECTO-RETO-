@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 
+const fechaLocalHoy = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export const CitaForm = ({ cita, onSubmit, onCancel, leadId }) => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const [formData, setFormData] = useState({
     lead_id: cita?.lead_id || leadId || '',
-    fecha: cita?.fecha || new Date().toISOString().split('T')[0],
+    fecha: cita?.fecha || fechaLocalHoy(),
     hora_inicio: cita?.hora_inicio || '10:00',
     hora_fin: cita?.hora_fin || '10:30',
     motivo: cita?.motivo || '',
