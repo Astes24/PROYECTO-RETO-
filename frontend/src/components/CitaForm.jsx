@@ -11,6 +11,7 @@ export const CitaForm = ({ cita, onSubmit, onCancel, leadId }) => {
     hora_inicio: cita?.hora_inicio || '10:00',
     hora_fin: cita?.hora_fin || '10:30',
     motivo: cita?.motivo || '',
+    estado: cita?.estado || 'pendiente',
     notas: cita?.notas || ''
   });
 
