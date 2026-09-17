@@ -7,3 +7,5 @@ backend/data/
 .DS_Store
 Thumbs.db
 .playwright-cli/
+.agents/
+skills-lock.json
