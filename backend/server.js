@@ -27,6 +27,11 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'Mini Praxia API funcionando correctamente 🏥' });
 });
 
+// 404 en JSON para rutas no encontradas
+app.use((req, res) => {
+  res.status(404).json({ error: true, message: `Ruta no encontrada: ${req.method} ${req.originalUrl}` });
+});
+
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err.stack);
