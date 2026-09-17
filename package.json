@@ -1,0 +1,12 @@
+{
+  "name": "mini-praxia",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Mini Praxia - Sistema de Gestión de Consultorio Médico",
+  "dependencies": {
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "sql.js": "^1.11.0"
+  }
+}
