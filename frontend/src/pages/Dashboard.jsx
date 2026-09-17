@@ -104,6 +104,12 @@ export const Dashboard = () => {
         <div className="animate-slide-up" style={{ animationDelay: '0.4s' }}>
           <MetricCard icon="⏳" label="Citas Pendientes" value={resumen?.citasPendientes || 0} color="warning" />
         </div>
+        <div className="animate-slide-up" style={{ animationDelay: '0.5s' }}>
+          <MetricCard icon="🚫" label="Citas Canceladas" value={resumen?.citasCanceladas || 0} color="danger" />
+        </div>
+        <div className="animate-slide-up" style={{ animationDelay: '0.6s' }}>
+          <MetricCard icon="🔁" label="Citas Reprogramadas" value={resumen?.citasReprogramadas || 0} color="accent" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
