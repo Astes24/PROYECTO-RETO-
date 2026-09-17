@@ -88,7 +88,6 @@ export const Leads = () => {
           leads={leads} 
           onEdit={openEdit} 
           onCreateCita={openCreateCita}
-          onView={() => {}} 
         />
       )}
 

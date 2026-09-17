@@ -41,7 +41,6 @@ export const WhatsApp = () => {
   useEffect(() => {
     if (selectedContact) {
       loadMessages(selectedContact.telefono);
-      // set up polling for new messages could go here
       const interval = setInterval(() => {
         loadMessages(selectedContact.telefono);
       }, 5000);

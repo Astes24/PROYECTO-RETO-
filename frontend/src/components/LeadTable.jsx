@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StatusBadge } from './StatusBadge';
 
-export const LeadTable = ({ leads, onEdit, onCreateCita, onView }) => {
+export const LeadTable = ({ leads, onEdit, onCreateCita }) => {
   const [search, setSearch] = useState('');
 
   const filtered = leads.filter(l => 
