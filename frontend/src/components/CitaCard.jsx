@@ -27,7 +27,7 @@ export const CitaCard = ({ cita, onChangeEstado, onEdit, onDelete }) => {
       <div className="flex justify-between items-start">
         <div>
           <div style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-            {cita.Lead?.nombre || 'Paciente Desconocido'}
+            {cita.lead_nombre || 'Paciente Desconocido'}
           </div>
           <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span>🕒 {cita.hora_inicio?.substring(0,5)} - {cita.hora_fin?.substring(0,5)}</span>
