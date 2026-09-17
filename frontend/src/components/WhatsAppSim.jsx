@@ -79,7 +79,7 @@ export const WhatsAppSim = ({ mensajes, onSendMessage, contact }) => {
                 boxShadow: 'var(--shadow-sm)',
                 position: 'relative'
               }}>
-                <div style={{ fontSize: '0.9rem' }}>{msg.contenido}</div>
+                <div style={{ fontSize: '0.9rem' }}>{msg.mensaje}</div>
                 <div style={{
                   fontSize: '0.65rem',
                   color: 'rgba(255,255,255,0.7)',
