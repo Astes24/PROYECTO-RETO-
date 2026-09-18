@@ -4,11 +4,19 @@ import { IconClose } from './icons';
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+const FIRST_FIELD = 'input:not([type="hidden"]), select, textarea';
 
 export const Modal = ({ isOpen, onClose, title, children, footer }) => {
   const panelRef = useRef(null);
   const openerRef = useRef(null);
+  const onCloseRef = useRef(onClose);
   const titleId = useId();
+
+  // Mantiene la referencia fresca sin volver a montar el efecto:
+  // antes, un `onClose` nuevo en cada render reenfocaba el modal a cada tecla.
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -17,13 +25,13 @@ export const Modal = ({ isOpen, onClose, title, children, footer }) => {
     document.body.style.overflow = 'hidden';
 
     const panel = panelRef.current;
-    const first = panel?.querySelector(FOCUSABLE);
-    (first || panel)?.focus();
+    const firstField = panel?.querySelector(FIRST_FIELD);
+    (firstField || panel)?.focus();
 
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab' || !panel) return;
@@ -51,7 +59,7 @@ export const Modal = ({ isOpen, onClose, title, children, footer }) => {
       document.body.style.overflow = '';
       if (openerRef.current instanceof HTMLElement) openerRef.current.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
