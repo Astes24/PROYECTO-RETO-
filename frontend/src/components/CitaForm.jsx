@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { api } from '../api/client';
 
 const fechaLocalHoy = () => {
@@ -30,6 +30,12 @@ export const CitaForm = ({ cita, onSubmit, onCancel, leadId, submitting = false 
   const [leads, setLeads] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errores, setErrores] = useState({});
+  const formRef = useRef(null);
+
+  useEffect(() => {
+    if (Object.keys(errores).length === 0) return;
+    formRef.current?.querySelector('[aria-invalid="true"]')?.focus();
+  }, [errores]);
 
   const [formData, setFormData] = useState({
     lead_id: cita?.lead_id || leadId || '',
@@ -84,7 +90,7 @@ export const CitaForm = ({ cita, onSubmit, onCancel, leadId, submitting = false 
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    <form onSubmit={handleSubmit} ref={formRef} noValidate>
       <div className="form-group">
         <label className="form-label" htmlFor={field('lead_id')}>Paciente *</label>
         <select

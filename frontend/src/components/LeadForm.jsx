@@ -1,4 +1,4 @@
-import React, { useId, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 
 const validar = (f) => {
   const errores = {};
@@ -25,6 +25,12 @@ export const LeadForm = ({ lead, onSubmit, onCancel, submitting = false }) => {
     notas: lead?.notas || ''
   });
   const [errores, setErrores] = useState({});
+  const formRef = useRef(null);
+
+  useEffect(() => {
+    if (Object.keys(errores).length === 0) return;
+    formRef.current?.querySelector('[aria-invalid="true"]')?.focus();
+  }, [errores]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,7 +49,7 @@ export const LeadForm = ({ lead, onSubmit, onCancel, submitting = false }) => {
   const field = (name) => `${uid}-${name}`;
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    <form onSubmit={handleSubmit} ref={formRef} noValidate>
       <div className="form-group">
         <label className="form-label" htmlFor={field('nombre')}>Nombre *</label>
         <input
@@ -53,6 +59,7 @@ export const LeadForm = ({ lead, onSubmit, onCancel, submitting = false }) => {
           value={formData.nombre}
           onChange={handleChange}
           placeholder="Ej. Juan Pérez"
+          autoComplete="name"
           aria-invalid={errores.nombre ? 'true' : undefined}
           aria-describedby={errores.nombre ? field('nombre-error') : undefined}
           autoFocus
@@ -66,6 +73,9 @@ export const LeadForm = ({ lead, onSubmit, onCancel, submitting = false }) => {
           id={field('telefono')}
           className="form-control num"
           name="telefono"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
           value={formData.telefono}
           onChange={handleChange}
           placeholder="Ej. +52 55 5123 4567"
@@ -82,6 +92,8 @@ export const LeadForm = ({ lead, onSubmit, onCancel, submitting = false }) => {
           className="form-control"
           type="email"
           name="email"
+          autoComplete="email"
+          spellCheck={false}
           value={formData.email}
           onChange={handleChange}
           placeholder="Ej. juan@correo.com"

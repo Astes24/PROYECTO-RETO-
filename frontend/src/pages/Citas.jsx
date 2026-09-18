@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { CitaCard } from '../components/CitaCard';
 import { CitaForm } from '../components/CitaForm';
 import { Modal } from '../components/Modal';
@@ -18,8 +19,18 @@ const ESTADOS = [
 export const Citas = () => {
   const [citas, setCitas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filtro, setFiltro] = useState('todas');
-  const [fecha, setFecha] = useState('');
+  const [params, setParams] = useSearchParams();
+  const filtro = params.get('estado') || 'todas';
+  const fecha = params.get('fecha') || '';
+
+  const setParam = (key, value) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setParams(next, { replace: true });
+  };
+  const setFiltro = (valor) => setParam('estado', valor === 'todas' ? '' : valor);
+  const setFecha = (valor) => setParam('fecha', valor);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCita, setSelectedCita] = useState(null);
   const [aBorrar, setABorrar] = useState(null);
