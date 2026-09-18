@@ -139,13 +139,14 @@ function seedDatabase() {
     leadIds.push(idResult[0].values[0][0]);
   }
 
-  // 5 Citas (hoy y mañana)
+  // 6 Citas (hoy y mañana)
   const citasData = [
     [leadIds[0], dateToday, '10:00', '10:30', 'Consulta Inicial', 'pendiente', ''],
     [leadIds[1], dateToday, '11:00', '11:45', 'Revisión Odontológica', 'confirmada', 'Traer radiografías'],
     [leadIds[2], dateToday, '15:00', '15:30', 'Presupuesto', 'cancelada', 'Se enfermó'],
     [leadIds[3], dateTomorrow, '09:00', '09:30', 'Consulta Inicial', 'pendiente', ''],
-    [leadIds[4], dateTomorrow, '14:00', '15:00', 'Tratamiento', 'confirmada', '']
+    [leadIds[4], dateTomorrow, '14:00', '15:00', 'Tratamiento', 'confirmada', ''],
+    [leadIds[5], dateTomorrow, '16:00', '16:30', 'Control de tratamiento', 'reprogramada', 'Cambió de horario']
   ];
 
   for (const [lead_id, fecha, hora_inicio, hora_fin, motivo, estado, notas] of citasData) {
