@@ -1,72 +1,139 @@
-import React, { useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 
-export const LeadForm = ({ lead, onSubmit, onCancel }) => {
+const validar = (f) => {
+  const errores = {};
+  if (!f.nombre.trim() || f.nombre.trim().length < 2) {
+    errores.nombre = 'Escribe al menos 2 caracteres.';
+  }
+  if (f.telefono.trim().replace(/\D/g, '').length < 7) {
+    errores.telefono = 'El teléfono debe tener al menos 7 dígitos.';
+  }
+  if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) {
+    errores.email = 'El email no tiene un formato válido.';
+  }
+  return errores;
+};
+
+export const LeadForm = ({ lead, onSubmit, onCancel, submitting = false }) => {
+  const uid = useId();
   const [formData, setFormData] = useState({
     nombre: lead?.nombre || '',
     telefono: lead?.telefono || '',
     email: lead?.email || '',
     fuente: lead?.fuente || 'web',
+    estado: lead?.estado || 'nuevo',
     notas: lead?.notas || ''
   });
-  
-  const [error, setError] = useState('');
+  const [errores, setErrores] = useState({});
+  const formRef = useRef(null);
+
+  useEffect(() => {
+    if (Object.keys(errores).length === 0) return;
+    formRef.current?.querySelector('[aria-invalid="true"]')?.focus();
+  }, [errores]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrores((prev) => ({ ...prev, [name]: undefined }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.nombre.trim() || !formData.telefono.trim()) {
-      setError('Nombre y teléfono son obligatorios');
-      return;
-    }
-    setError('');
+    const encontrados = validar(formData);
+    setErrores(encontrados);
+    if (Object.keys(encontrados).length > 0) return;
     onSubmit(formData);
   };
 
+  const field = (name) => `${uid}-${name}`;
+
   return (
-    <form onSubmit={handleSubmit}>
-      {error && (
-        <div style={{ color: 'var(--danger)', marginBottom: '1rem', fontSize: '0.875rem' }}>
-          {error}
+    <form onSubmit={handleSubmit} ref={formRef} noValidate>
+      <div className="form-group">
+        <label className="form-label" htmlFor={field('nombre')}>Nombre *</label>
+        <input
+          id={field('nombre')}
+          className="form-control"
+          name="nombre"
+          value={formData.nombre}
+          onChange={handleChange}
+          placeholder="Ej. Juan Pérez"
+          autoComplete="name"
+          aria-invalid={errores.nombre ? 'true' : undefined}
+          aria-describedby={errores.nombre ? field('nombre-error') : undefined}
+          autoFocus
+        />
+        {errores.nombre && <span className="field-error" id={field('nombre-error')}>{errores.nombre}</span>}
+      </div>
+
+      <div className="form-group">
+        <label className="form-label" htmlFor={field('telefono')}>Teléfono *</label>
+        <input
+          id={field('telefono')}
+          className="form-control num"
+          name="telefono"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          value={formData.telefono}
+          onChange={handleChange}
+          placeholder="Ej. +52 55 5123 4567"
+          aria-invalid={errores.telefono ? 'true' : undefined}
+          aria-describedby={errores.telefono ? field('telefono-error') : undefined}
+        />
+        {errores.telefono && <span className="field-error" id={field('telefono-error')}>{errores.telefono}</span>}
+      </div>
+
+      <div className="form-group">
+        <label className="form-label" htmlFor={field('email')}>Email</label>
+        <input
+          id={field('email')}
+          className="form-control"
+          type="email"
+          name="email"
+          autoComplete="email"
+          spellCheck={false}
+          value={formData.email}
+          onChange={handleChange}
+          placeholder="Ej. juan@correo.com"
+          aria-invalid={errores.email ? 'true' : undefined}
+          aria-describedby={errores.email ? field('email-error') : undefined}
+        />
+        {errores.email && <span className="field-error" id={field('email-error')}>{errores.email}</span>}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="form-group">
+          <label className="form-label" htmlFor={field('fuente')}>Fuente</label>
+          <select id={field('fuente')} className="form-control" name="fuente" value={formData.fuente} onChange={handleChange}>
+            <option value="web">Web</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="referido">Referido</option>
+            <option value="instagram">Instagram</option>
+            <option value="otro">Otro</option>
+          </select>
         </div>
-      )}
-      
-      <div className="form-group">
-        <label className="form-label">Nombre *</label>
-        <input className="form-control" name="nombre" value={formData.nombre} onChange={handleChange} placeholder="Ej. Juan Pérez" autoFocus />
+        <div className="form-group">
+          <label className="form-label" htmlFor={field('estado')}>Estado</label>
+          <select id={field('estado')} className="form-control" name="estado" value={formData.estado} onChange={handleChange}>
+            <option value="nuevo">Nuevo</option>
+            <option value="contactado">Contactado</option>
+            <option value="convertido">Convertido</option>
+          </select>
+        </div>
       </div>
 
       <div className="form-group">
-        <label className="form-label">Teléfono *</label>
-        <input className="form-control" name="telefono" value={formData.telefono} onChange={handleChange} placeholder="Ej. +34600123456" />
+        <label className="form-label" htmlFor={field('notas')}>Notas</label>
+        <textarea id={field('notas')} className="form-control" name="notas" value={formData.notas} onChange={handleChange} placeholder="Detalles adicionales" />
       </div>
 
-      <div className="form-group">
-        <label className="form-label">Email</label>
-        <input className="form-control" type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Ej. juan@email.com" />
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">Fuente</label>
-        <select className="form-control" name="fuente" value={formData.fuente} onChange={handleChange}>
-          <option value="web">Web</option>
-          <option value="whatsapp">WhatsApp</option>
-          <option value="referido">Referido</option>
-          <option value="otro">Otro</option>
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">Notas</label>
-        <textarea className="form-control" name="notas" value={formData.notas} onChange={handleChange} placeholder="Detalles adicionales..." />
-      </div>
-
-      <div className="flex justify-end gap-3 mt-6">
-        <button type="button" className="btn btn-outline" onClick={onCancel}>Cancelar</button>
-        <button type="submit" className="btn btn-primary">{lead ? 'Guardar Cambios' : 'Crear Lead'}</button>
+      <div className="modal-actions">
+        <button type="button" className="btn btn-outline" onClick={onCancel} disabled={submitting}>Cancelar</button>
+        <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting ? 'Guardando…' : lead ? 'Guardar cambios' : 'Crear lead'}
+        </button>
       </div>
     </form>
   );

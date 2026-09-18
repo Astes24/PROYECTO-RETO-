@@ -12,6 +12,17 @@ router.post('/webhook', (req, res) => {
       return res.status(400).json({ error: true, message: 'Teléfono y mensaje son obligatorios.' });
     }
 
+    // Rechazar mensajes repetidos del mismo número dentro de una ventana de 2 minutos
+    const repetido = getOne(`
+      SELECT id FROM mensajes_whatsapp
+      WHERE telefono = ? AND mensaje = ? AND direccion = 'entrante'
+      AND created_at > datetime('now', '-2 minutes')
+    `, [telefono, mensaje]);
+
+    if (repetido) {
+      return res.status(400).json({ error: true, message: 'Mensaje repetido: ya recibimos este mismo mensaje hace instantes.' });
+    }
+
     let lead = getOne('SELECT id FROM leads WHERE telefono = ?', [telefono]);
 
     if (!lead) {

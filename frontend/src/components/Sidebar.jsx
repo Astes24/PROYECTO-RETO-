@@ -1,59 +1,45 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { IconDashboard, IconUsers, IconCalendar, IconChat, IconPulse } from './icons';
 
 const navItems = [
-  { path: '/', label: 'Dashboard', icon: '📊' },
-  { path: '/leads', label: 'Leads', icon: '👥' },
-  { path: '/citas', label: 'Citas', icon: '📅' },
-  { path: '/whatsapp', label: 'WhatsApp', icon: '💬' }
+  { path: '/', label: 'Panel', Icon: IconDashboard, end: true },
+  { path: '/leads', label: 'Leads', Icon: IconUsers },
+  { path: '/citas', label: 'Citas', Icon: IconCalendar },
+  { path: '/whatsapp', label: 'WhatsApp', Icon: IconChat }
 ];
 
-export const Sidebar = () => {
+export const Sidebar = ({ open = false, onClose }) => {
   return (
-    <aside className="sidebar glass" style={{
-      width: '260px',
-      height: '100vh',
-      position: 'fixed',
-      left: 0,
-      top: 0,
-      display: 'flex',
-      flexDirection: 'column',
-      borderRight: '1px solid var(--border)',
-      zIndex: 100
-    }}>
-      <div style={{ padding: '2rem 1.5rem' }}>
-        <h2 className="text-gradient" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🏥 Mini Praxia</h2>
-        <p className="text-secondary" style={{ fontSize: '0.875rem' }}>Gestión Médica</p>
+    <aside
+      id="menu-lateral"
+      className={`sidebar${open ? ' is-open' : ''}`}
+      aria-label="Navegación principal"
+    >
+      <div className="sidebar-brand">
+        <span className="brand-mark"><IconPulse /></span>
+        <div>
+          <div className="brand-name">Mini Praxia</div>
+          <div className="brand-sub">Gestión de consultorio</div>
+        </div>
       </div>
 
-      <nav style={{ flex: 1, padding: '0 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        {navItems.map((item) => (
+      <nav className="sidebar-nav">
+        {navItems.map(({ path, label, Icon, end }) => (
           <NavLink
-            key={item.path}
-            to={item.path}
-            style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              padding: '0.75rem 1rem',
-              borderRadius: 'var(--radius-md)',
-              textDecoration: 'none',
-              color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-              background: isActive ? 'rgba(6, 182, 212, 0.1)' : 'transparent',
-              borderLeft: isActive ? '3px solid var(--accent)' : '3px solid transparent',
-              transition: 'all 0.2s ease',
-              fontWeight: isActive ? '600' : '400'
-            })}
+            key={path}
+            to={path}
+            end={end}
+            onClick={onClose}
+            className={({ isActive }) => `nav-link${isActive ? ' is-active' : ''}`}
           >
-            <span style={{ fontSize: '1.2rem' }}>{item.icon}</span>
-            {item.label}
+            <Icon />
+            {label}
           </NavLink>
         ))}
       </nav>
 
-      <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border)', textAlign: 'center' }}>
-        <span className="text-secondary" style={{ fontSize: '0.75rem' }}>Mini Praxia v1.0</span>
-      </div>
+      <div className="sidebar-footer">Mini Praxia v1.0</div>
     </aside>
   );
 };

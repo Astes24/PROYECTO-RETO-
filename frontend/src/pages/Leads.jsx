@@ -1,120 +1,135 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { LeadTable } from '../components/LeadTable';
 import { LeadForm } from '../components/LeadForm';
 import { CitaForm } from '../components/CitaForm';
 import { Modal } from '../components/Modal';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { api } from '../api/client';
-import { useToast } from '../components/Toast';
+import { useToast } from '../components/toast-context';
+import { IconPlus } from '../components/icons';
 
 export const Leads = () => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
-  const [isCitaModalOpen, setIsCitaModalOpen] = useState(false);
+  const [leadModal, setLeadModal] = useState(false);
+  const [citaModal, setCitaModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
-  
+  const [aBorrar, setABorrar] = useState(null);
+  const [guardando, setGuardando] = useState(false);
   const { addToast } = useToast();
 
-  const loadLeads = async () => {
+  const loadLeads = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await api.getLeads();
-      setLeads(data);
+      setLeads(await api.getLeads());
     } catch (error) {
       addToast(error.message, 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast]);
 
   useEffect(() => {
     loadLeads();
-  }, []);
+  }, [loadLeads]);
 
-  const handleSaveLead = async (data) => {
+  const handleGuardarLead = async (data) => {
     try {
+      setGuardando(true);
       if (selectedLead) {
         await api.updateLead(selectedLead.id, data);
-        addToast('Lead actualizado correctamente', 'success');
+        addToast('Lead actualizado', 'success');
       } else {
         await api.createLead(data);
-        addToast('Lead creado correctamente', 'success');
+        addToast('Lead creado', 'success');
       }
-      setIsLeadModalOpen(false);
+      setLeadModal(false);
+      loadLeads();
+    } catch (error) {
+      addToast(error.message, 'error');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const handleGuardarCita = async (data) => {
+    try {
+      setGuardando(true);
+      await api.createCita(data);
+      addToast('Cita agendada', 'success');
+      setCitaModal(false);
+      loadLeads();
+    } catch (error) {
+      addToast(error.message, 'error');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const confirmarBorrado = async () => {
+    try {
+      await api.deleteLead(aBorrar.id);
+      addToast('Lead eliminado', 'success');
+      setABorrar(null);
       loadLeads();
     } catch (error) {
       addToast(error.message, 'error');
     }
   };
 
-  const handleSaveCita = async (data) => {
-    try {
-      await api.createCita(data);
-      addToast('Cita programada correctamente', 'success');
-      setIsCitaModalOpen(false);
-    } catch (error) {
-      addToast(error.message, 'error');
-    }
-  };
-
-  const openEdit = (lead) => {
-    setSelectedLead(lead);
-    setIsLeadModalOpen(true);
-  };
-
-  const openCreateCita = (lead) => {
-    setSelectedLead(lead);
-    setIsCitaModalOpen(true);
-  };
-
-  const openCreateLead = () => {
-    setSelectedLead(null);
-    setIsLeadModalOpen(true);
-  };
-
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-gradient" style={{ fontSize: '2rem' }}>Leads</h1>
-        <button className="btn btn-primary" onClick={openCreateLead}>
-          + Nuevo Lead
+    <>
+      <div className="page-head">
+        <div>
+          <h1>Leads</h1>
+          <p>Pacientes potenciales y su estado en el embudo.</p>
+        </div>
+        <button type="button" className="btn btn-primary" onClick={() => { setSelectedLead(null); setLeadModal(true); }}>
+          <IconPlus />
+          Nuevo lead
         </button>
       </div>
 
       {loading ? (
-        <div className="skeleton" style={{ height: '400px' }}></div>
+        <div className="skeleton" style={{ height: 400 }} />
       ) : (
-        <LeadTable 
-          leads={leads} 
-          onEdit={openEdit} 
-          onCreateCita={openCreateCita}
-          onView={() => {}} 
+        <LeadTable
+          leads={leads}
+          onEdit={(lead) => { setSelectedLead(lead); setLeadModal(true); }}
+          onCreateCita={(lead) => { setSelectedLead(lead); setCitaModal(true); }}
+          onDelete={(lead) => setABorrar(lead)}
         />
       )}
 
-      <Modal 
-        isOpen={isLeadModalOpen} 
-        onClose={() => setIsLeadModalOpen(false)} 
-        title={selectedLead ? 'Editar Lead' : 'Nuevo Lead'}
-      >
-        <LeadForm 
-          lead={selectedLead} 
-          onSubmit={handleSaveLead} 
-          onCancel={() => setIsLeadModalOpen(false)} 
+      <Modal isOpen={leadModal} onClose={() => setLeadModal(false)} title={selectedLead ? 'Editar lead' : 'Nuevo lead'}>
+        <LeadForm
+          lead={selectedLead}
+          onSubmit={handleGuardarLead}
+          onCancel={() => setLeadModal(false)}
+          submitting={guardando}
         />
       </Modal>
 
-      <Modal 
-        isOpen={isCitaModalOpen} 
-        onClose={() => setIsCitaModalOpen(false)} 
-        title={`Agendar Cita para ${selectedLead?.nombre}`}
+      <Modal
+        isOpen={citaModal}
+        onClose={() => setCitaModal(false)}
+        title={`Agendar cita · ${selectedLead?.nombre || ''}`}
       >
-        <CitaForm 
+        <CitaForm
           leadId={selectedLead?.id}
-          onSubmit={handleSaveCita} 
-          onCancel={() => setIsCitaModalOpen(false)} 
+          onSubmit={handleGuardarCita}
+          onCancel={() => setCitaModal(false)}
+          submitting={guardando}
         />
       </Modal>
-    </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(aBorrar)}
+        title="Eliminar lead"
+        message={`Se eliminará ${aBorrar?.nombre || 'este lead'} junto con sus citas y mensajes. Esta acción no se puede deshacer.`}
+        onConfirm={confirmarBorrado}
+        onCancel={() => setABorrar(null)}
+      />
+    </>
   );
 };

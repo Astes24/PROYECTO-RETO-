@@ -1,39 +1,50 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { MetricCard } from '../components/MetricCard';
 import { CitaCard } from '../components/CitaCard';
+import { CitaForm } from '../components/CitaForm';
+import { Modal } from '../components/Modal';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { api } from '../api/client';
-import { useToast } from '../components/Toast';
+import { useToast } from '../components/toast-context';
+import {
+  IconUsers, IconCalendar, IconCheck, IconClock, IconClose, IconRefresh, IconPlus, IconInbox
+} from '../components/icons';
 
 export const Dashboard = () => {
   const [resumen, setResumen] = useState(null);
   const [citasHoy, setCitasHoy] = useState([]);
   const [leadsRecientes, setLeadsRecientes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedCita, setSelectedCita] = useState(null);
+  const [aBorrar, setABorrar] = useState(null);
+  const [guardando, setGuardando] = useState(false);
   const { addToast } = useToast();
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [res, hoy, leadsRes] = await Promise.all([
+      const [res, hoy, leads] = await Promise.all([
         api.getResumen(),
         api.getCitasHoy(),
         api.getLeads()
       ]);
       setResumen(res);
-      setCitasHoy(hoy);
-      // Sort leads by created_at desc, take top 5
-      const sortedLeads = (leadsRes || []).sort((a, b) => new Date(b.created_at || b.fecha) - new Date(a.created_at || a.fecha));
-      setLeadsRecientes(sortedLeads.slice(0, 5));
+      setCitasHoy(hoy || []);
+      const ordenados = [...(leads || [])].sort(
+        (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+      );
+      setLeadsRecientes(ordenados.slice(0, 5));
     } catch (error) {
       addToast(error.message, 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleChangeEstado = async (id, estado) => {
     try {
@@ -45,83 +56,149 @@ export const Dashboard = () => {
     }
   };
 
+  const handleGuardar = async (data) => {
+    try {
+      setGuardando(true);
+      if (selectedCita) await api.updateCita(selectedCita.id, data);
+      else await api.createCita(data);
+      addToast(selectedCita ? 'Cita actualizada' : 'Cita agendada', 'success');
+      setModalOpen(false);
+      loadData();
+    } catch (error) {
+      addToast(error.message, 'error');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const confirmarBorrado = async () => {
+    try {
+      await api.deleteCita(aBorrar.id);
+      addToast('Cita eliminada', 'success');
+      setABorrar(null);
+      loadData();
+    } catch (error) {
+      addToast(error.message, 'error');
+    }
+  };
+
+  const abrirEdicion = (cita) => {
+    setSelectedCita(cita);
+    setModalOpen(true);
+  };
+
+  const abrirCreacion = () => {
+    setSelectedCita(null);
+    setModalOpen(true);
+  };
+
   if (loading) {
     return (
-      <div className="p-6">
-        <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem' }}>Dashboard</h1>
-        <div className="grid grid-cols-4 gap-6 mb-8">
-          {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: '120px' }}></div>)}
-        </div>
-      </div>
+      <>
+        <div className="page-head"><h1>Panel</h1></div>
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          {[0, 1, 2, 3, 4, 5].map((i) => <div key={i} className="skeleton" style={{ height: 108 }} />)}
+        </div>        <div className="skeleton" style={{ height: 240 }} />
+      </>
     );
   }
 
+  const hoyTexto = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
+
   return (
-    <div>
-      <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem' }}>Dashboard</h1>
-      
-      <div className="grid grid-cols-4 gap-6 mb-8">
-        <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          <MetricCard icon="👥" label="Total Leads" value={resumen?.totalLeads || 0} color="accent" />
+    <>
+      <div className="page-head">
+        <div>
+          <h1>Panel</h1>
+          <p style={{ textTransform: 'capitalize' }}>{hoyTexto}</p>
         </div>
-        <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
-          <MetricCard icon="📅" label="Citas Hoy" value={resumen?.citasHoy || 0} color="warning" />
-        </div>
-        <div className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
-          <MetricCard icon="✅" label="Citas Confirmadas" value={resumen?.citasConfirmadas || 0} color="success" />
-        </div>
-        <div className="animate-slide-up" style={{ animationDelay: '0.4s' }}>
-          <MetricCard icon="⏳" label="Citas Pendientes" value={resumen?.citasPendientes || 0} color="warning" />
-        </div>
+        <button type="button" className="btn btn-primary" onClick={abrirCreacion}>
+          <IconPlus />
+          Nueva cita
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Agenda de Hoy</h2>
-          <div className="flex flex-col gap-4">
-            {citasHoy.length === 0 ? (
-              <div className="glass p-6 text-center text-secondary">No hay citas programadas para hoy.</div>
-            ) : (
-              citasHoy.map(cita => (
-                <CitaCard 
-                  key={cita.id} 
-                  cita={cita} 
-                  onChangeEstado={handleChangeEstado}
-                  onEdit={() => {}} // Placeholder for edit
-                  onDelete={() => {}} // Placeholder for delete
-                />
-              ))
-            )}
-          </div>
-        </div>
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <MetricCard icon={<IconUsers />} label="Total de leads" value={resumen?.totalLeads ?? 0} hint={`${resumen?.leadsNuevos ?? 0} nuevos`} tone="primary" />
+        <MetricCard icon={<IconCalendar />} label="Citas de hoy" value={resumen?.citasHoy ?? 0} hint="Agenda del día" tone="info" />
+        <MetricCard icon={<IconCheck />} label="Confirmadas" value={resumen?.citasConfirmadas ?? 0} tone="accent" />
+        <MetricCard icon={<IconClock />} label="Pendientes" value={resumen?.citasPendientes ?? 0} tone="warning" />
+        <MetricCard icon={<IconClose />} label="Canceladas" value={resumen?.citasCanceladas ?? 0} tone="danger" />
+        <MetricCard icon={<IconRefresh />} label="Reprogramadas" value={resumen?.citasReprogramadas ?? 0} tone="primary" />
+      </div>
 
-        <div>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Leads Recientes</h2>
-          <div className="glass flex flex-col gap-0" style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+      <div className="grid grid-cols-3 gap-5">
+        <section className="grid" style={{ gridColumn: 'span 2', gap: 'var(--sp-3)' }}>
+          <h2>Agenda de hoy</h2>
+          {citasHoy.length === 0 ? (
+            <div className="panel empty">
+              <span className="empty-icon"><IconCalendar /></span>
+              <div>
+                <strong>No hay citas para hoy</strong>
+                <p>Agenda la primera para verla en este panel.</p>
+              </div>
+              <button type="button" className="btn btn-outline" onClick={abrirCreacion}>
+                <IconPlus /> Nueva cita
+              </button>
+            </div>
+          ) : (
+            citasHoy.map((cita) => (
+              <CitaCard
+                key={cita.id}
+                cita={cita}
+                onChangeEstado={handleChangeEstado}
+                onEdit={abrirEdicion}
+                onDelete={(id) => setABorrar({ id, nombre: cita.lead_nombre })}
+              />
+            ))
+          )}
+        </section>
+
+        <section className="grid" style={{ gap: 'var(--sp-3)', alignContent: 'start' }}>
+          <h2>Leads recientes</h2>
+          <div className="panel list">
             {leadsRecientes.length === 0 ? (
-              <div className="p-4 text-center text-secondary">No hay leads recientes.</div>
+              <div className="empty">
+                <span className="empty-icon"><IconInbox /></span>
+                <div><strong>Sin leads todavía</strong></div>
+              </div>
             ) : (
-              leadsRecientes.map(lead => (
-                <div key={lead.id} style={{
-                  padding: '1rem',
-                  borderBottom: '1px solid var(--border)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
+              leadsRecientes.map((lead) => (
+                <div key={lead.id} className="list-row">
                   <div>
-                    <div style={{ fontWeight: 500 }}>{lead.nombre}</div>
-                    <div className="text-secondary" style={{ fontSize: '0.75rem' }}>{lead.fuente}</div>
+                    <div className="list-title">{lead.nombre}</div>
+                    <div className="list-sub" style={{ textTransform: 'capitalize' }}>{lead.fuente}</div>
                   </div>
-                  <div className="text-secondary" style={{ fontSize: '0.75rem' }}>
-                    {new Date(lead.created_at || lead.fecha).toLocaleDateString()}
+                  <div className="list-sub num">
+                    {new Date(lead.created_at || lead.fecha).toLocaleDateString('es', { day: '2-digit', month: '2-digit' })}
                   </div>
                 </div>
               ))
             )}
           </div>
-        </div>
+        </section>
       </div>
-    </div>
+
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={selectedCita ? 'Editar cita' : 'Nueva cita'}
+      >
+        <CitaForm
+          cita={selectedCita}
+          onSubmit={handleGuardar}
+          onCancel={() => setModalOpen(false)}
+          submitting={guardando}
+        />
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={Boolean(aBorrar)}
+        title="Eliminar cita"
+        message={`Se eliminará la cita de ${aBorrar?.nombre || 'este paciente'}. Esta acción no se puede deshacer.`}
+        onConfirm={confirmarBorrado}
+        onCancel={() => setABorrar(null)}
+      />
+    </>
   );
 };
