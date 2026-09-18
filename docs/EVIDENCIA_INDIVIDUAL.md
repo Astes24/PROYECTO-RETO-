@@ -56,6 +56,8 @@ la fecha por partes (sin `new Date`) y calculando la fecha por defecto en horari
 
 ## Erick E.
 
+> Borrador redactado a partir del código del repositorio. Erick confirma, corrige o ajusta.
+
 **Rol asumido:** Backend. API, reglas de negocio, persistencia y validaciones.
 
 **Componentes y archivos trabajados principalmente**
@@ -65,14 +67,26 @@ la fecha por partes (sin `new Date`) y calculando la fecha por defecto en horari
 
 **Decisión técnica personal**
 
-_(completar: p. ej. usar `sql.js` con persistencia a archivo y datos semilla para que la
-demo arranque siempre con información, sin depender de un motor externo)._
+Usar **SQLite con `sql.js`**: base en memoria con volcado a archivo en
+`backend/data/clinica.db` en cada escritura, más datos semilla en el primer arranque.
+Con eso se cumple "base de datos o almacenamiento estructurado" con SQL real, sin
+instalar un motor ni manejar credenciales, y la demostración siempre arranca con
+información. Además separé el backend en `server.js` (arranque y rutas),
+`database.js` (esquema y helpers) y `middleware/validation.js` (reglas), para que
+cada archivo se pueda explicar por separado.
 
 **Problema encontrado y cómo lo resolvió**
 
-_(completar: p. ej. el conflicto de horarios solapados al crear o editar citas, o la
-validación de estados permitidos.)_
+El control de solapamiento de horarios debía cubrir los tres casos posibles de dos
+intervalos (uno contiene al otro, el nuevo empieza antes y termina dentro, el nuevo
+empieza dentro y termina después) y, al mismo tiempo, ignorar las citas canceladas y
+la propia cita cuando se edita. Lo resolví con una única consulta de comparación de
+intervalos sobre `hora_inicio`/`hora_fin`, más `estado != 'cancelada'` y `id != ?` en
+el `PUT`, de modo que reprogramar una cita no la bloquea contra sí misma.
 
 **Qué mejoraría con un día adicional**
 
-_(completar.)_
+- Migraciones de esquema y transacciones explícitas en lugar de escrituras sueltas.
+- Índices en `citas(fecha, estado)` para las consultas del panel.
+- Hacer configurable la ventana de deduplicación de mensajes (hoy son 2 minutos fijos).
+- Paginación y filtros por rango de fechas en `GET /api/leads` y `GET /api/citas`.

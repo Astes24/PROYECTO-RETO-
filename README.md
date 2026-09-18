@@ -42,6 +42,21 @@ Si la API no está arriba, la interfaz mostrará errores de red en los toasts.
 | Backend | Node.js + Express |
 | Datos | SQLite vía `sql.js` (archivo en `backend/data/clinica.db`) |
 
+### Por qué este stack
+
+- **React + Vite** — la interfaz es un panel con estado compartido (leads, citas, mensajes)
+  y varias vistas. React lo resuelve sin ceremonia y Vite da recarga instantánea, clave
+  cuando dos personas trabajan sobre el mismo repositorio.
+- **Express** — la API es un CRUD con reglas simples. Permite separar rutas, middleware y
+  datos en archivos pequeños y explicables en la demo, sin capas que no aportan al alcance.
+- **SQLite vía `sql.js`** — cumple "base de datos o almacenamiento estructurado" con SQL
+  real, sin instalar un motor ni manejar credenciales. El archivo `data/clinica.db` hace
+  visible la persistencia y arranca con datos semilla para la demostración.
+- **CSS vanilla con tokens** — el reto no pide un framework de estilos. Un sistema de
+  tokens propio (`index.css`) demuestra criterio de diseño y evita dependencias.
+- **Sin librerías de estado ni de UI** — el alcance no las necesita: menos dependencias
+  son menos partes que explicar y menos cosas que romper.
+
 ## Arquitectura
 
 ```
