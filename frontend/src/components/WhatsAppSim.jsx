@@ -1,121 +1,76 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { IconSend, IconUsers, IconInbox } from './icons';
 
 export const WhatsAppSim = ({ mensajes, onSendMessage, contact }) => {
   const [input, setInput] = useState('');
-  const messagesEndRef = useRef(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const endRef = useRef(null);
 
   useEffect(() => {
-    scrollToBottom();
+    endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [mensajes]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    onSendMessage(input);
+    const texto = input.trim();
+    if (!texto || !contact) return;
+    onSendMessage(texto);
     setInput('');
   };
 
   return (
-    <div className="glass flex flex-col" style={{ height: '600px', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-      {/* Header */}
-      <div style={{
-        padding: '1rem',
-        background: 'rgba(30, 41, 59, 0.9)',
-        borderBottom: '1px solid var(--border)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1rem'
-      }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          borderRadius: '50%',
-          backgroundColor: 'var(--bg-secondary)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '1.25rem'
-        }}>
-          👤
-        </div>
+    <section className="chat" aria-label="Conversación simulada de WhatsApp">
+      <header className="chat-head">
+        <span className="chat-avatar"><IconUsers /></span>
         <div>
-          <div style={{ fontWeight: 600 }}>{contact?.nombre || 'Seleccione un chat'}</div>
-          <div className="text-secondary" style={{ fontSize: '0.75rem' }}>{contact?.telefono || ''}</div>
+          <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{contact?.nombre || 'Selecciona una conversación'}</div>
+          <div className="list-sub num">{contact?.telefono || 'Sin contacto activo'}</div>
         </div>
-      </div>
+      </header>
 
-      {/* Messages Area */}
-      <div style={{
-        flex: 1,
-        padding: '1.5rem',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-        backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
-        backgroundSize: 'contain',
-        backgroundBlendMode: 'overlay',
-        backgroundColor: 'rgba(15, 23, 42, 0.95)'
-      }}>
+      <div className="chat-body">
         {mensajes.length === 0 ? (
-          <div className="text-center text-secondary mt-4">No hay mensajes en esta conversación.</div>
+          <div className="empty" style={{ margin: 'auto' }}>
+            <span className="empty-icon"><IconInbox /></span>
+            <div>
+              <strong>Sin mensajes</strong>
+              <p>Elige un contacto o simula un mensaje entrante.</p>
+            </div>
+          </div>
         ) : (
-          mensajes.map((msg, idx) => {
-            const isOutgoing = msg.direccion === 'saliente';
+          mensajes.map((msg) => {
+            const saliente = msg.direccion === 'saliente';
             return (
-              <div key={idx} style={{
-                alignSelf: isOutgoing ? 'flex-end' : 'flex-start',
-                maxWidth: '75%',
-                padding: '0.75rem 1rem',
-                borderRadius: '1rem',
-                borderBottomRightRadius: isOutgoing ? '0' : '1rem',
-                borderBottomLeftRadius: !isOutgoing ? '0' : '1rem',
-                background: isOutgoing ? '#056162' : 'var(--bg-secondary)',
-                color: '#fff',
-                boxShadow: 'var(--shadow-sm)',
-                position: 'relative'
-              }}>
-                <div style={{ fontSize: '0.9rem' }}>{msg.mensaje}</div>
-                <div style={{
-                  fontSize: '0.65rem',
-                  color: 'rgba(255,255,255,0.7)',
-                  textAlign: 'right',
-                  marginTop: '0.25rem'
-                }}>
-                  {new Date(msg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
+              <div key={msg.id} className={`chat-msg ${saliente ? 'out' : 'in'}`}>
+                {msg.mensaje}
+                <time>
+                  {new Date(msg.created_at || Date.now()).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </time>
               </div>
             );
           })
         )}
-        <div ref={messagesEndRef} />
+        <div ref={endRef} />
       </div>
 
-      {/* Input Area */}
-      <form onSubmit={handleSubmit} style={{
-        padding: '1rem',
-        background: 'rgba(30, 41, 59, 0.9)',
-        borderTop: '1px solid var(--border)',
-        display: 'flex',
-        gap: '0.5rem'
-      }}>
+      <form className="chat-form" onSubmit={handleSubmit}>
         <input
-          type="text"
+          id="chat-input"
           className="form-control"
-          placeholder="Escribe un mensaje..."
+          aria-label="Escribir mensaje"
+          placeholder={contact ? 'Escribe un mensaje…' : 'Selecciona un contacto para escribir'}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={!contact}
-          style={{ borderRadius: 'var(--radius-full)' }}
+          style={{ borderRadius: 'var(--r-full)' }}
         />
-        <button type="submit" className="btn btn-primary" style={{ borderRadius: 'var(--radius-full)', padding: '0.5rem 1.5rem' }} disabled={!contact}>
-          Enviar 🚀
+        <button type="submit" className="btn btn-primary" disabled={!contact || !input.trim()} style={{ borderRadius: 'var(--r-full)' }}>
+          <IconSend />
+          Enviar
         </button>
       </form>
-    </div>
+    </section>
   );
 };

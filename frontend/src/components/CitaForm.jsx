@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { api } from '../api/client';
 
 const fechaLocalHoy = () => {
@@ -6,107 +6,170 @@ const fechaLocalHoy = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-export const CitaForm = ({ cita, onSubmit, onCancel, leadId }) => {
+// Suma minutos sin desbordar al día siguiente (evita 00:xx < inicio).
+const sumarMinutos = (hhmm, minutos) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  const total = Math.min(h * 60 + m + minutos, 23 * 60 + 59);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+};
+
+const validar = (f) => {
+  const errores = {};
+  if (!f.lead_id) errores.lead_id = 'Selecciona un paciente.';
+  if (!f.fecha) errores.fecha = 'La fecha es obligatoria.';
+  else if (f.fecha < fechaLocalHoy()) errores.fecha = 'La fecha no puede estar en el pasado.';
+  if (!f.hora_inicio) errores.hora_inicio = 'Indica la hora de inicio.';
+  if (!f.hora_fin) errores.hora_fin = 'Indica la hora de fin.';
+  else if (f.hora_inicio && f.hora_fin <= f.hora_inicio) errores.hora_fin = 'Debe ser posterior a la hora de inicio.';
+  if (!f.motivo.trim()) errores.motivo = 'Escribe el motivo de la consulta.';
+  return errores;
+};
+
+export const CitaForm = ({ cita, onSubmit, onCancel, leadId, submitting = false }) => {
+  const uid = useId();
   const [leads, setLeads] = useState([]);
-  const [loading, setLoading] = useState(true);
-  
+  const [cargando, setCargando] = useState(true);
+  const [errores, setErrores] = useState({});
+
   const [formData, setFormData] = useState({
     lead_id: cita?.lead_id || leadId || '',
     fecha: cita?.fecha || fechaLocalHoy(),
-    hora_inicio: cita?.hora_inicio || '10:00',
-    hora_fin: cita?.hora_fin || '10:30',
+    hora_inicio: cita?.hora_inicio?.slice(0, 5) || '10:00',
+    hora_fin: cita?.hora_fin?.slice(0, 5) || '10:30',
     motivo: cita?.motivo || '',
     estado: cita?.estado || 'pendiente',
     notas: cita?.notas || ''
   });
 
-  const [error, setError] = useState('');
-
   useEffect(() => {
-    api.getLeads().then(data => {
-      setLeads(data);
-      if (!formData.lead_id && data.length > 0) {
-        setFormData(prev => ({ ...prev, lead_id: data[0].id }));
-      }
-    }).finally(() => setLoading(false));
+    let activo = true;
+    api
+      .getLeads()
+      .then((data) => {
+        if (!activo) return;
+        setLeads(data);
+        setFormData((prev) => (prev.lead_id ? prev : { ...prev, lead_id: data[0]?.id || '' }));
+      })
+      .catch(() => {})
+      .finally(() => activo && setCargando(false));
+    return () => {
+      activo = false;
+    };
   }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => {
+    setFormData((prev) => {
       const next = { ...prev, [name]: value };
       if (name === 'hora_inicio' && value) {
-        // Auto set hora_fin to 30 min later
-        const [h, m] = value.split(':').map(Number);
-        const endD = new Date();
-        endD.setHours(h, m + 30);
-        next.hora_fin = `${endD.getHours().toString().padStart(2, '0')}:${endD.getMinutes().toString().padStart(2, '0')}`;
+        next.hora_fin = sumarMinutos(value, 30);
       }
       return next;
     });
+    setErrores((prev) => ({ ...prev, [name]: undefined, ...(name === 'hora_inicio' ? { hora_fin: undefined } : {}) }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.lead_id || !formData.fecha || !formData.hora_inicio || !formData.hora_fin || !formData.motivo) {
-      setError('Todos los campos marcados con * son obligatorios');
-      return;
-    }
-    setError('');
+    const encontrados = validar(formData);
+    setErrores(encontrados);
+    if (Object.keys(encontrados).length > 0) return;
     onSubmit(formData);
   };
 
-  if (loading) return <div className="p-4 text-center">Cargando...</div>;
+  const field = (name) => `${uid}-${name}`;
+
+  if (cargando) {
+    return <div className="skeleton" style={{ height: 260 }} aria-label="Cargando formulario" />;
+  }
 
   return (
-    <form onSubmit={handleSubmit}>
-      {error && (
-        <div style={{ color: 'var(--danger)', marginBottom: '1rem', fontSize: '0.875rem' }}>
-          {error}
-        </div>
-      )}
-      
+    <form onSubmit={handleSubmit} noValidate>
       <div className="form-group">
-        <label className="form-label">Paciente (Lead) *</label>
-        <select className="form-control" name="lead_id" value={formData.lead_id} onChange={handleChange}>
-          <option value="">Seleccione un paciente...</option>
-          {leads.map(l => (
-            <option key={l.id} value={l.id}>{l.nombre} ({l.telefono})</option>
+        <label className="form-label" htmlFor={field('lead_id')}>Paciente *</label>
+        <select
+          id={field('lead_id')}
+          className="form-control"
+          name="lead_id"
+          value={formData.lead_id}
+          onChange={handleChange}
+          aria-invalid={errores.lead_id ? 'true' : undefined}
+        >
+          <option value="">Selecciona un paciente…</option>
+          {leads.map((l) => (
+            <option key={l.id} value={l.id}>{l.nombre} · {l.telefono}</option>
           ))}
         </select>
+        {errores.lead_id && <span className="field-error">{errores.lead_id}</span>}
       </div>
 
       <div className="form-group">
-        <label className="form-label">Motivo *</label>
-        <input className="form-control" name="motivo" value={formData.motivo} onChange={handleChange} placeholder="Ej. Consulta general" />
+        <label className="form-label" htmlFor={field('motivo')}>Motivo *</label>
+        <input
+          id={field('motivo')}
+          className="form-control"
+          name="motivo"
+          value={formData.motivo}
+          onChange={handleChange}
+          placeholder="Ej. Consulta general"
+          aria-invalid={errores.motivo ? 'true' : undefined}
+        />
+        {errores.motivo && <span className="field-error">{errores.motivo}</span>}
+      </div>
+
+      <div className="form-group">
+        <label className="form-label" htmlFor={field('fecha')}>Fecha *</label>
+        <input
+          id={field('fecha')}
+          className="form-control num"
+          type="date"
+          name="fecha"
+          value={formData.fecha}
+          onChange={handleChange}
+          aria-invalid={errores.fecha ? 'true' : undefined}
+        />
+        {errores.fecha && <span className="field-error">{errores.fecha}</span>}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="form-group">
-          <label className="form-label">Fecha *</label>
-          <input className="form-control" type="date" name="fecha" value={formData.fecha} onChange={handleChange} />
+          <label className="form-label" htmlFor={field('hora_inicio')}>Hora inicio *</label>
+          <input
+            id={field('hora_inicio')}
+            className="form-control num"
+            type="time"
+            name="hora_inicio"
+            value={formData.hora_inicio}
+            onChange={handleChange}
+            aria-invalid={errores.hora_inicio ? 'true' : undefined}
+          />
+          {errores.hora_inicio && <span className="field-error">{errores.hora_inicio}</span>}
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <div className="form-group">
-          <label className="form-label">Hora Inicio *</label>
-          <input className="form-control" type="time" name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Hora Fin *</label>
-          <input className="form-control" type="time" name="hora_fin" value={formData.hora_fin} onChange={handleChange} />
+          <label className="form-label" htmlFor={field('hora_fin')}>Hora fin *</label>
+          <input
+            id={field('hora_fin')}
+            className="form-control num"
+            type="time"
+            name="hora_fin"
+            value={formData.hora_fin}
+            onChange={handleChange}
+            aria-invalid={errores.hora_fin ? 'true' : undefined}
+          />
+          {errores.hora_fin && <span className="field-error">{errores.hora_fin}</span>}
         </div>
       </div>
 
       <div className="form-group">
-        <label className="form-label">Notas</label>
-        <textarea className="form-control" name="notas" value={formData.notas} onChange={handleChange} placeholder="Detalles de la cita..." />
+        <label className="form-label" htmlFor={field('notas')}>Notas</label>
+        <textarea id={field('notas')} className="form-control" name="notas" value={formData.notas} onChange={handleChange} placeholder="Detalles de la cita" />
       </div>
 
-      <div className="flex justify-end gap-3 mt-6">
-        <button type="button" className="btn btn-outline" onClick={onCancel}>Cancelar</button>
-        <button type="submit" className="btn btn-primary">{cita ? 'Guardar Cambios' : 'Agendar Cita'}</button>
+      <div className="modal-actions">
+        <button type="button" className="btn btn-outline" onClick={onCancel} disabled={submitting}>Cancelar</button>
+        <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting ? 'Guardando…' : cita ? 'Guardar cambios' : 'Agendar cita'}
+        </button>
       </div>
     </form>
   );
